@@ -1,25 +1,45 @@
-// Providers often supply types with their API libraries.
-
-export interface AcmeUser {
-  id: string;
+export interface OrcaUser {
+  user_id: string;
   name: string;
+  email: string;
+  first: string;
+  last: string;
 }
 
-export interface AcmeGroup {
+export interface OrcaGroup {
   id: string;
   name: string;
-  users?: Pick<AcmeUser, 'id'>[];
+  description?: string;
+  sso_group: boolean;
+  users: string[];
 }
 
-// Those can be useful to a degree, but often they're just full of optional
-// values. Understanding the response data may be more reliably accomplished by
-// reviewing the API response recordings produced by testing the wrapper client
-// (./client.ts). However, when there are no types provided, it is necessary to define
-// opaque types for each resource, to communicate the records that are expected
-// to come from an endpoint and are provided to iterating functions.
+// /api/organization/users
+export interface OrcaUsersResponse {
+  status: string;
+  data: {
+    name: string;
+    users: OrcaUser[];
+  };
+}
 
-/*
-import { Opaque } from 'type-fest';
-export type AcmeUser = Opaque<any, 'AcmeUser'>;
-export type AcmeGroup = Opaque<any, 'AcmeGroup'>;
-*/
+// /api/rbac/group
+export interface OrcaGroupsResponse {
+  status: string;
+  data: {
+    groups: Omit<OrcaGroup, 'users'>[];
+  };
+}
+
+// /api/rbac/group/<id>
+export interface OrcaGroupResponse {
+  status: string;
+  data: {
+    group: string;
+    description?: string;
+    all_users: boolean;
+    users: {
+      id: string;
+    }[];
+  };
+}

@@ -13,7 +13,6 @@ import { createAPIClient } from './client';
  * When executing the integration in a development environment, these values may
  * be provided in a `.env` file with environment variables. For example:
  *
- * - `CLIENT_ID=123` becomes `instance.config.clientId = '123'`
  * - `CLIENT_SECRET=abc` becomes `instance.config.clientSecret = 'abc'`
  *
  * Environment variables are NOT used when the integration is executing in a
@@ -21,9 +20,6 @@ import { createAPIClient } from './client';
  * `instance.config` in a UI.
  */
 export const instanceConfigFields: IntegrationInstanceConfigFieldMap = {
-  clientId: {
-    type: 'string',
-  },
   clientSecret: {
     type: 'string',
     mask: true,
@@ -36,11 +32,6 @@ export const instanceConfigFields: IntegrationInstanceConfigFieldMap = {
  */
 export interface IntegrationConfig extends IntegrationInstanceConfig {
   /**
-   * The provider API client ID used to authenticate requests.
-   */
-  clientId: string;
-
-  /**
    * The provider API client secret used to authenticate requests.
    */
   clientSecret: string;
@@ -51,9 +42,9 @@ export async function validateInvocation(
 ) {
   const { config } = context.instance;
 
-  if (!config.clientId || !config.clientSecret) {
+  if (!config.clientSecret) {
     throw new IntegrationValidationError(
-      'Config requires all of {clientId, clientSecret}',
+      'Config requires all of {clientSecret}',
     );
   }
 

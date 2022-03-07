@@ -1,9 +1,15 @@
-import http from 'http';
+import fetch from 'node-fetch';
 
 import { IntegrationProviderAuthenticationError } from '@jupiterone/integration-sdk-core';
 
 import { IntegrationConfig } from './config';
-import { AcmeUser, AcmeGroup } from './types';
+import {
+  OrcaUser,
+  OrcaUsersResponse,
+  OrcaGroupsResponse,
+  OrcaGroup,
+  OrcaGroupResponse,
+} from './types';
 
 export type ResourceIteratee<T> = (each: T) => Promise<void> | void;
 
@@ -19,38 +25,36 @@ export class APIClient {
   constructor(readonly config: IntegrationConfig) {}
 
   public async verifyAuthentication(): Promise<void> {
-    // TODO make the most light-weight request possible to validate
-    // authentication works with the provided credentials, throw an err if
-    // authentication fails
-    const request = new Promise<void>((resolve, reject) => {
-      http.get(
-        {
-          hostname: 'localhost',
-          port: 443,
-          path: '/api/v1/some/endpoint?limit=1',
-          agent: false,
-          timeout: 10,
-        },
-        (res) => {
-          if (res.statusCode !== 200) {
-            reject(new Error('Provider authentication failed'));
-          } else {
-            resolve();
-          }
-        },
-      );
+    const response = await fetch(`https://api.orcasecurity.io/api/rbac/group`, {
+      method: 'HEAD',
+      headers: {
+        Authorization: `Bearer ${this.config.clientSecret}`,
+      },
     });
 
-    try {
-      await request;
-    } catch (err) {
+    if (!response.ok) {
       throw new IntegrationProviderAuthenticationError({
-        cause: err,
-        endpoint: 'https://localhost/api/v1/some/endpoint?limit=1',
-        status: err.status,
-        statusText: err.statusText,
+        cause: new Error('Provider authentication failed'),
+        endpoint: 'https://api.orcasecurity.io/api/user/session',
+        status: response.status,
+        statusText: response.statusText,
       });
     }
+  }
+
+  private async getRequest<T>(endpoint: string): Promise<T> {
+    const response = await fetch(`https://api.orcasecurity.io/api${endpoint}`, {
+      headers: {
+        Authorization: `Bearer ${this.config.clientSecret}`,
+      },
+    });
+
+    if (!response.ok) {
+      // TODO:
+      throw new Error('Fetch threw error');
+    }
+
+    return response.json();
   }
 
   /**
@@ -59,28 +63,13 @@ export class APIClient {
    * @param iteratee receives each resource to produce entities/relationships
    */
   public async iterateUsers(
-    iteratee: ResourceIteratee<AcmeUser>,
+    iteratee: ResourceIteratee<OrcaUser>,
   ): Promise<void> {
-    // TODO paginate an endpoint, invoke the iteratee with each record in the
-    // page
-    //
-    // The provider API will hopefully support pagination. Functions like this
-    // should maintain pagination state, and for each page, for each record in
-    // the page, invoke the `ResourceIteratee`. This will encourage a pattern
-    // where each resource is processed and dropped from memory.
+    const response: OrcaUsersResponse = await this.getRequest(
+      '/organization/users',
+    );
 
-    const users: AcmeUser[] = [
-      {
-        id: 'acme-user-1',
-        name: 'User One',
-      },
-      {
-        id: 'acme-user-2',
-        name: 'User Two',
-      },
-    ];
-
-    for (const user of users) {
+    for (const user of response.data.users) {
       await iteratee(user);
     }
   }
@@ -91,30 +80,24 @@ export class APIClient {
    * @param iteratee receives each resource to produce entities/relationships
    */
   public async iterateGroups(
-    iteratee: ResourceIteratee<AcmeGroup>,
+    iteratee: ResourceIteratee<OrcaGroup>,
   ): Promise<void> {
-    // TODO paginate an endpoint, invoke the iteratee with each record in the
-    // page
-    //
-    // The provider API will hopefully support pagination. Functions like this
-    // should maintain pagination state, and for each page, for each record in
-    // the page, invoke the `ResourceIteratee`. This will encourage a pattern
-    // where each resource is processed and dropped from memory.
+    const groupsResponse: OrcaGroupsResponse = await this.getRequest(
+      '/rbac/group',
+    );
 
-    const groups: AcmeGroup[] = [
-      {
-        id: 'acme-group-1',
-        name: 'Group One',
-        users: [
-          {
-            id: 'acme-user-1',
-          },
-        ],
-      },
-    ];
+    for (const group of groupsResponse.data.groups) {
+      const groupResponse: OrcaGroupResponse = await this.getRequest(
+        `/rbac/group/${group.id}`,
+      );
 
-    for (const group of groups) {
-      await iteratee(group);
+      await iteratee({
+        id: group.id,
+        name: group.name,
+        sso_group: group.sso_group,
+        description: group.description,
+        users: groupResponse.data.users.map((user) => user.id),
+      });
     }
   }
 }

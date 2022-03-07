@@ -8,7 +8,7 @@ import {
 
 import { createAPIClient } from '../../client';
 import { IntegrationConfig } from '../../config';
-import { AcmeGroup } from '../../types';
+import { OrcaGroup } from '../../types';
 import { ACCOUNT_ENTITY_KEY } from '../account';
 import { Entities, Steps, Relationships } from '../constants';
 import {
@@ -58,7 +58,7 @@ export async function buildGroupUserRelationships({
   await jobState.iterateEntities(
     { _type: Entities.GROUP._type },
     async (groupEntity) => {
-      const group = getRawData<AcmeGroup>(groupEntity);
+      const group = getRawData<OrcaGroup>(groupEntity);
 
       if (!group) {
         logger.warn(
@@ -68,12 +68,12 @@ export async function buildGroupUserRelationships({
         return;
       }
 
-      for (const user of group.users || []) {
-        const userEntity = await jobState.findEntity(user.id);
+      for (const userId of group.users || []) {
+        const userEntity = await jobState.findEntity(userId);
 
         if (!userEntity) {
           throw new IntegrationMissingKeyError(
-            `Expected user with key to exist (key=${user.id})`,
+            `Expected user with key to exist (key=${userId})`,
           );
         }
 

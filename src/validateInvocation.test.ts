@@ -21,7 +21,7 @@ describe('#validateInvocation', () => {
     });
 
     await expect(validateInvocation(executionContext)).rejects.toThrow(
-      'Config requires all of {clientId, clientSecret}',
+      'Config requires all of {clientSecret}',
     );
   });
 
@@ -54,31 +54,6 @@ describe('#validateInvocation', () => {
      * error messaging is expected and clear to end-users
      */
     describe('invalid user credentials', () => {
-      test.skip('should throw if clientId is invalid', async () => {
-        recording = setupProjectRecording({
-          directory: __dirname,
-          name: 'client-id-auth-error',
-          // Many authorization failures will return non-200 responses
-          // and `recordFailedRequest: true` is needed to capture these responses
-          options: {
-            recordFailedRequests: true,
-          },
-        });
-
-        const executionContext = createMockExecutionContext({
-          instanceConfig: {
-            clientId: 'INVALID',
-            clientSecret: integrationConfig.clientSecret,
-          },
-        });
-
-        // tests validate that invalid configurations throw an error
-        // with an appropriate and expected message.
-        await expect(validateInvocation(executionContext)).rejects.toThrow(
-          'Provider authentication failed at https://localhost/api/v1/some/endpoint?limit=1: 401 Unauthorized',
-        );
-      });
-
       test.skip('should throw if clientSecret is invalid', async () => {
         recording = setupProjectRecording({
           directory: __dirname,
@@ -90,7 +65,6 @@ describe('#validateInvocation', () => {
 
         const executionContext = createMockExecutionContext({
           instanceConfig: {
-            clientId: integrationConfig.clientSecret,
             clientSecret: 'INVALID',
           },
         });

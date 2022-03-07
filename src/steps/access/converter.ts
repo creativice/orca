@@ -7,28 +7,30 @@ import {
 } from '@jupiterone/integration-sdk-core';
 
 import { Entities } from '../constants';
-import { AcmeGroup, AcmeUser } from '../../types';
+import { OrcaGroup, OrcaUser } from '../../types';
 
-export function createUserEntity(user: AcmeUser): Entity {
+export function createUserEntity(user: OrcaUser): Entity {
   return createIntegrationEntity({
     entityData: {
       source: user,
       assign: {
         _type: Entities.USER._type,
         _class: Entities.USER._class,
-        _key: user.id,
-        username: 'testusername',
-        email: 'test@test.com',
+        _key: user.user_id,
+        username: user.email,
+        email: user.email,
         active: true, // this is a required property
+        name: `${user.first} ${user.last}`,
         // This is a custom property that is not a part of the data model class
         // hierarchy. See: https://github.com/JupiterOne/data-model/blob/master/src/schemas/User.json
-        firstName: 'John',
+        firstName: user.first,
+        lastName: user.last,
       },
     },
   });
 }
 
-export function createGroupEntity(group: AcmeGroup): Entity {
+export function createGroupEntity(group: OrcaGroup): Entity {
   return createIntegrationEntity({
     entityData: {
       source: group,
